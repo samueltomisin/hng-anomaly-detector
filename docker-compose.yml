@@ -1,0 +1,36 @@
+
+
+volumes:
+  HNG-nginx-logs:  # This is the named volume — exact name required
+  nextcloud-data:
+
+services:
+  nextcloud:
+    image: kefaslungu/hng-nextcloud
+    restart: unless-stopped
+    volumes:
+      - nextcloud-data:/var/www/html
+      - HNG-nginx-logs:/var/log/nginx:ro  # Nextcloud mounts it read-only
+    environment:
+      - NEXTCLOUD_TRUSTED_DOMAINS=54.242.77.202
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - HNG-nginx-logs:/var/log/nginx  # Nginx WRITES here
+    depends_on:
+      - nextcloud
+
+  detector:
+    build: ./detector
+    restart: unless-stopped
+    network_mode: host  # Needs host network to run iptables
+    privileged: true    # Needs privilege to run iptables
+    volumes:
+      - HNG-nginx-logs:/var/log/nginx:ro  # Detector reads logs
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}

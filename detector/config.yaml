@@ -1,0 +1,15 @@
+log_path: /var/log/nginx/hng-access.log
+audit_log_path: /var/log/detector/audit.log
+
+sliding_window_seconds: 60
+baseline_window_minutes: 30
+baseline_recalc_interval_seconds: 60
+
+anomaly_zscore_threshold: 3.0
+anomaly_rate_multiplier: 5.0
+error_rate_multiplier: 3.0
+
+unban_schedule_minutes: [10, 30, 120]  # then permanent
+
+dashboard_port: 8080
+slack_webhook_url: ""
