@@ -61,6 +61,7 @@ Three things come out of the detector when an anomaly is confirmed — an `iptab
 
 
 ## 🗂️ Repository Structure
+```
 hng-anomaly-detector/
 │
 ├── detector/
@@ -84,6 +85,7 @@ hng-anomaly-detector/
 ├── screenshots/         # All 7 required screenshots
 ├── docker-compose.yml   # Spins up the entire stack
 └── README.md
+```
 ---
 
 ## ⚙️ How the Sliding Window Works
@@ -128,12 +130,15 @@ The result is a baseline that **adapts to your actual traffic** — busy hours g
 Once we have the current rate and the baseline, the detector runs two checks — whichever fires first triggers the response:
 
 **Check 1 — Z-score** (is this statistically unusual?)
+
 `z = (current_rate - baseline_mean) / baseline_stddev`
 
 If z > 3.0 → ANOMALY
+
 `A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.`
 
 **Check 2 — Rate multiplier** (is this just way too fast?)
+
 `If current_rate > baseline_mean × 5 → ANOMALY`
 
 This catches sudden spikes even before the baseline has enough data to produce a reliable z-score.
