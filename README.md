@@ -94,7 +94,6 @@ Think of the sliding window like a rolling conveyor belt — it only ever holds 
 Under the hood, we use Python's `deque` (double-ended queue) data structure. Every time a request comes in, we append its timestamp to the deque. Before calculating the rate, we evict any timestamps older than 60 seconds from the left side:
 
 ```python
-```pythont(self, window):
 def _evict(self, window):- self.window_seconds  # 60 seconds ago
     cutoff = time.time() - self.window_seconds  # 60 seconds ago
     while window and window[0] < cutoff: old ones
@@ -104,7 +103,6 @@ def _evict(self, window):- self.window_seconds  # 60 seconds ago
 The current request rate is then simply:
 
 ```python
-```pythonn(window) / 60  # requests per second
 rate = len(window) / 60  # requests per second
 ```
 We maintain **two** of these windows simultaneously:
@@ -133,15 +131,15 @@ Once we have the current rate and the baseline, the detector runs two checks —
 
 `z = (current_rate - baseline_mean) / baseline_stddev`
 
-If z > 3.0 → ANOMALY
+`If z > 3.0 → ANOMALY`
 
-`A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.`
+**A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.**
 
 **Check 2 — Rate multiplier** (is this just way too fast?)
 
 `If current_rate > baseline_mean × 5 → ANOMALY`
 
-This catches sudden spikes even before the baseline has enough data to produce a reliable z-score.
+**This catches sudden spikes even before the baseline has enough data to produce a reliable z-score.**
 
 **Bonus — Error surge tightening:**
 If an IP is already sending lots of 4xx/5xx errors (3x the normal error rate), we tighten its z-score threshold from `3.0` down to `1.8` — we become more suspicious of it automatically.
@@ -187,9 +185,11 @@ A Slack notification is sent every time an IP is unbanned.
 ---
 
 Every ban, unban, and baseline recalculation is recorded in this format:
+```
 [2026-04-28T10:00:00Z] BAN 1.2.3.4 | z-score=5.23 | rate=8.3200 | baseline=1.0000 | duration=600
 [2026-04-28T10:10:00Z] UNBAN 1.2.3.4 | offense #1 | released
 [2026-04-28T10:01:00Z] BASELINE_RECALC | mean=1.2400 | stddev=0.5000
+```
 ---
 
 ## 📝 Blog Post
