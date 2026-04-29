@@ -1,6 +1,6 @@
 # 🛡️ HNG Anomaly Detection Engine
 
-> A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nextcloud platform. It watches every HTTP request, learns what normal traffic looks like, and fights back automatically when something looks wrong — no human needed.
+A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nextcloud platform. It watches every HTTP request, learns what normal traffic looks like, and fights back automatically when something looks wrong — no human needed.
 
 ---
 
@@ -20,7 +20,7 @@ Imagine you're running a busy cloud storage platform. Thousands of users access 
 
 Without protection, your server slows down, legitimate users can't access their files, and your platform goes down.
 
-This tool sits quietly in the background, watching every single HTTP request that hits your server. It learns what "normal" looks like. The moment something deviates — whether it's one aggressive IP or a global traffic spike — it reacts:
+This tool sits quietly in the background, watching every single HTTP request that hits your server. It learns what "normal" looks like. The moment something deviates; whether it's one aggressive IP or a global traffic spike, it reacts:
 
 - 🚨 Blocks the attacker at the firewall level using `iptables`
 - 📢 Sends an instant Slack alert with full details
@@ -35,15 +35,19 @@ All of this happens within **10 seconds** of detection. Automatically. While you
 ## 🏗️ Architecture Overview
 
 Here's how all the pieces fit together:
+
 The system is made up of four main layers that work together seamlessly.
 
 **Layer 1 — Traffic Entry**
+
 All incoming HTTP traffic from the internet hits **Nginx** first. Nginx acts as a reverse proxy; it forwards legitimate requests to Nextcloud and simultaneously writes a structured JSON log entry for every single request to a shared Docker volume called `HNG-nginx-logs`.
 
 **Layer 2 — The Application**
+
 **Nextcloud** sits behind Nginx and never directly faces the internet. It handles all the actual cloud storage functionality. It mounts the log volume read-only, just as the task requires.
 
 **Layer 3 — The Detector Daemon**
+
 This is the heart of the system. The detector mounts the same `HNG-nginx-logs` volume and tails the log file in real time. It is made up of seven modules, each with a single responsibility:
 
 - `monitor.py` reads every new log line as it arrives
@@ -55,6 +59,7 @@ This is the heart of the system. The detector mounts the same `HNG-nginx-logs` v
 - `dashboard.py` serves the live metrics web UI on port 8080
 
 **Layer 4 — Outputs**
+
 Three things come out of the detector when an anomaly is confirmed — an `iptables DROP` rule that stops the attacker at the kernel level, a Slack alert with full context, and an updated live dashboard. Every action is also written to a structured audit log.
 
 ---
