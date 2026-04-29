@@ -35,34 +35,33 @@ All of this happens within **10 seconds** of detection. Automatically. While you
 ## 🏗️ Architecture Overview
 
 Here's how all the pieces fit together:
->
-> Internet Traffic
-│
-▼
-[ Nginx ]  ←── Reverse proxy, writes JSON logs
-│
-├──── proxies requests to ──── [ Nextcloud ]
-│
-└──── writes logs to ──── [ HNG-nginx-logs Volume ]
-│
-▼
-[ Detector Daemon ]
-┌─────────────────┐
-│  monitor.py      │ ← tails the log file
-│  baseline.py     │ ← learns normal traffic
-│  detector.py     │ ← spots anomalies
-│  blocker.py      │ ← fires iptables
-│  unbanner.py     │ ← releases bans
-│  notifier.py     │ ← pings Slack
-│  dashboard.py    │ ← serves live UI
-└─────────────────┘
-│        │
-iptables    Slack alerts
-DROP rule   + Dashboard
-> ---
+The system is made up of four main layers that work together seamlessly.
+
+**Layer 1 — Traffic Entry**
+All incoming HTTP traffic from the internet hits **Nginx** first. Nginx acts as a reverse proxy; it forwards legitimate requests to Nextcloud and simultaneously writes a structured JSON log entry for every single request to a shared Docker volume called `HNG-nginx-logs`.
+
+**Layer 2 — The Application**
+**Nextcloud** sits behind Nginx and never directly faces the internet. It handles all the actual cloud storage functionality. It mounts the log volume read-only, just as the task requires.
+
+**Layer 3 — The Detector Daemon**
+This is the heart of the system. The detector mounts the same `HNG-nginx-logs` volume and tails the log file in real time. It is made up of seven modules, each with a single responsibility:
+
+- `monitor.py` reads every new log line as it arrives
+- `baseline.py` maintains a rolling 30-minute picture of normal traffic
+- `detector.py` compares current traffic against the baseline and raises the alarm
+- `blocker.py` executes the iptables firewall rule to drop the attacker
+- `unbanner.py` manages the automatic release of bans on a backoff schedule
+- `notifier.py` sends formatted alerts to Slack
+- `dashboard.py` serves the live metrics web UI on port 8080
+
+**Layer 4 — Outputs**
+Three things come out of the detector when an anomaly is confirmed — an `iptables DROP` rule that stops the attacker at the kernel level, a Slack alert with full context, and an updated live dashboard. Every action is also written to a structured audit log.
+
+---
+
 
 ## 🗂️ Repository Structure
-> hng-anomaly-detector/
+hng-anomaly-detector/
 │
 ├── detector/
 │   ├── main.py          # The brain — ties everything together
@@ -85,7 +84,7 @@ DROP rule   + Dashboard
 ├── screenshots/         # All 7 required screenshots
 ├── docker-compose.yml   # Spins up the entire stack
 └── README.md
-> ---
+---
 
 ## ⚙️ How the Sliding Window Works
 Think of the sliding window like a rolling conveyor belt — it only ever holds the **last 60 seconds** of requests, and old ones fall off the back automatically.
@@ -129,12 +128,15 @@ The result is a baseline that **adapts to your actual traffic** — busy hours g
 Once we have the current rate and the baseline, the detector runs two checks — whichever fires first triggers the response:
 
 **Check 1 — Z-score** (is this statistically unusual?)
-> z = (current_rate - baseline_mean) / baseline_stddev
+`z = (current_rate - baseline_mean) / baseline_stddev`
+
 If z > 3.0 → ANOMALY
-> A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.
+`A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.`
 
 **Check 2 — Rate multiplier** (is this just way too fast?)
-> A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.
+`If current_rate > baseline_mean × 5 → ANOMALY`
+
+This catches sudden spikes even before the baseline has enough data to produce a reliable z-score.
 
 **Bonus — Error surge tightening:**
 If an IP is already sending lots of 4xx/5xx errors (3x the normal error rate), we tighten its z-score threshold from `3.0` down to `1.8` — we become more suspicious of it automatically.
@@ -179,11 +181,11 @@ A Slack notification is sent every time an IP is unbanned.
 
 ---
 
-Every ban, unban, and baseline recalculation is recorded in this format:URL"
-> [2026-04-28T10:00:00Z] BAN 1.2.3.4 | z-score=5.23 | rate=8.3200 | baseline=1.0000 | duration=600
+Every ban, unban, and baseline recalculation is recorded in this format:
+[2026-04-28T10:00:00Z] BAN 1.2.3.4 | z-score=5.23 | rate=8.3200 | baseline=1.0000 | duration=600
 [2026-04-28T10:10:00Z] UNBAN 1.2.3.4 | offense #1 | released
 [2026-04-28T10:01:00Z] BASELINE_RECALC | mean=1.2400 | stddev=0.5000
-> ---
+---
 
 ## 📝 Blog Post
 
