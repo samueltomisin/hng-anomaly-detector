@@ -1,6 +1,6 @@
 # 🛡️ HNG Anomaly Detection Engine
 
-A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nextcloud platform. It watches every HTTP request, learns what normal traffic looks like, and fights back automatically when something looks wrong — no human needed.
+A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nextcloud platform. It watches every HTTP request, learns what normal traffic looks like, and fights back automatically when something looks wrong, no human needed.
 
 ---
 
@@ -9,14 +9,14 @@ A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nex
 | What | Where |
 |---|---|
 | 📊 Live Metrics Dashboard | http://anormallydashboard.duckdns.org:8080 |
-| ☁️ Nextcloud (IP access only) | http://54.242.77.202 |
+| ☁️ Nextcloud (IP access only) | http://http://34.228.27.80/:8080 |
 | 💻 GitHub Repository | https://github.com/samueltomisin/hng-anomaly-detector |
 
 ---
 
 ## 🧠 What Does This Thing Actually Do?
 
-Imagine you're running a busy cloud storage platform. Thousands of users access it daily. Then suddenly, one attacker starts hammering your server with thousands of requests per second — a classic DDoS attack.
+Imagine you're running a busy cloud storage platform. Thousands of users access it daily. Then suddenly, one attacker starts hammering your server with thousands of requests per second; a classic DDoS attack.
 
 Without protection, your server slows down, legitimate users can't access their files, and your platform goes down.
 
@@ -38,15 +38,15 @@ Here's how all the pieces fit together:
 
 The system is made up of four main layers that work together seamlessly.
 
-**Layer 1 — Traffic Entry**
+**Layer 1 : Traffic Entry**
 
 All incoming HTTP traffic from the internet hits **Nginx** first. Nginx acts as a reverse proxy; it forwards legitimate requests to Nextcloud and simultaneously writes a structured JSON log entry for every single request to a shared Docker volume called `HNG-nginx-logs`.
 
-**Layer 2 — The Application**
+**Layer 2 : The Application**
 
 **Nextcloud** sits behind Nginx and never directly faces the internet. It handles all the actual cloud storage functionality. It mounts the log volume read-only, just as the task requires.
 
-**Layer 3 — The Detector Daemon**
+**Layer 3 : The Detector Daemon**
 
 This is the heart of the system. The detector mounts the same `HNG-nginx-logs` volume and tails the log file in real time. It is made up of seven modules, each with a single responsibility:
 
@@ -58,9 +58,9 @@ This is the heart of the system. The detector mounts the same `HNG-nginx-logs` v
 - `notifier.py` sends formatted alerts to Slack
 - `dashboard.py` serves the live metrics web UI on port 8080
 
-**Layer 4 — Outputs**
+**Layer 4 : Outputs**
 
-Three things come out of the detector when an anomaly is confirmed — an `iptables DROP` rule that stops the attacker at the kernel level, a Slack alert with full context, and an updated live dashboard. Every action is also written to a structured audit log.
+Three things come out of the detector when an anomaly is confirmed. An `iptables DROP` rule that stops the attacker at the kernel level, a `Slack alert` with full context, and an `updated live dashboard`. Every action is also written to a structured audit log.
 
 ---
 
@@ -94,7 +94,7 @@ hng-anomaly-detector/
 ---
 
 ## ⚙️ How the Sliding Window Works
-Think of the sliding window like a rolling conveyor belt — it only ever holds the **last 60 seconds** of requests, and old ones fall off the back automatically.
+Think of the sliding window like a rolling conveyor belt, it only ever holds the **last 60 seconds** of requests, and old ones fall off the back automatically.
 
 Under the hood, we use Python's `deque` (double-ended queue) data structure. Every time a request comes in, we append its timestamp to the deque. Before calculating the rate, we evict any timestamps older than 60 seconds from the left side:
 
@@ -111,8 +111,8 @@ The current request rate is then simply:
 rate = len(window) / 60  # requests per second
 ```
 We maintain **two** of these windows simultaneously:
-- One **per IP** — to catch a single aggressive attackerny IPs at once
-- One **global** — to catch a distributed attack from many IPs at once
+- One **per IP** : to catch a single aggressive attackerny IPs at once
+- One **global** : to catch a distributed attack from many IPs at once
 ---
 
 ## 📈 How the Baseline Learns
@@ -123,14 +123,14 @@ Here's how it works:
 1. Every second, we record how many requests arrived that secondunts
 2. We keep a **rolling 30-minute window** of these per-second counts*standard deviation** (how much traffic usually varies)
 3. Every **60 seconds**, we recalculate the **mean** (average) and **standard deviation** (how much traffic usually varies) is near zero
-4. We set a **floor** of `1.0` for mean and `0.5` for stddev — this prevents false alarms during quiet periods when traffic is near zero
-The result is a baseline that **adapts to your actual traffic** — busy hours get a higher baseline, quiet hours get a lower one. It's never hardcoded.
+4. We set a **floor** of `1.0` for mean and `0.5` for stddev this prevents false alarms during quiet periods when traffic is near zero
+The result is a baseline that **adapts to your actual traffic** busy hours get a higher baseline, quiet hours get a lower one. It's never hardcoded.
 
 ---
 
 ## 🚨 How Anomaly Detection Makes a Decision
 
-Once we have the current rate and the baseline, the detector runs two checks — whichever fires first triggers the response:
+Once we have the current rate and the baseline, the detector runs two checks whichever fires first triggers the response:
 
 **Check 1 — Z-score** (is this statistically unusual?)
 
@@ -138,7 +138,7 @@ Once we have the current rate and the baseline, the detector runs two checks —
 
 `If z > 3.0 → ANOMALY`
 
-**A z-score of 3.0 means the current rate is 3 standard deviations above normal — statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.**
+**A z-score of 3.0 means the current rate is 3 standard deviations above normal statistically, that happens less than 0.3% of the time by chance. So if it's firing, something is almost certainly wrong.**
 
 **Check 2 — Rate multiplier** (is this just way too fast?)
 
@@ -160,11 +160,11 @@ iptables -I INPUT -s ATTACKER_IP -j DROP
 ```
 
 Breaking that down:
-- `-I INPUT` — insert a rule at the top of the INPUT chain (all incoming traffic)
-- `-s ATTACKER_IP` — match traffic from this specific IP address
-- `-j DROP` — silently drop the packet — the attacker gets no response at all
+- `-I INPUT` : insert a rule at the top of the INPUT chain (all incoming traffic)
+- `-s ATTACKER_IP` : match traffic from this specific IP address
+- `-j DROP` : silently drop the packet — the attacker gets no response at all
 
-The attacker's requests never even reach Nginx or Nextcloud. They're stopped at the kernel level — the lowest possible layer.
+The attacker's requests never even reach Nginx or Nextcloud. They're stopped at the kernel level (the lowest possible layer).
 
 When the ban expires, the rule is removed:
 
@@ -223,12 +223,12 @@ All 7 required screenshots are in the `/screenshots` directory:
 
 ## 🛠️ Built With
 
-- **Python 3.11** — daemon, detection logic, dashboard
-- **Docker & Docker Compose** — container orchestration
-- **Nginx** — reverse proxy and JSON access logging
-- **iptables** — kernel-level IP blocking
-- **Slack Webhooks** — real-time alerting
-- **psutil** — CPU and memory monitoring
+- **Python 3.11** : daemon, detection logic, dashboard
+- **Docker & Docker Compose** : container orchestration
+- **Nginx** : reverse proxy and JSON access logging
+- **iptables** : kernel-level IP blocking
+- **Slack Webhooks** : real-time alerting
+- **psutil** : CPU and memory monitoring
 
 ---
 
