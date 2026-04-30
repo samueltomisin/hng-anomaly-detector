@@ -201,7 +201,7 @@ Every ban, unban, and baseline recalculation is recorded in this format:
 
 Read the full beginner-friendly breakdown of how this was built:
 
-👉 [YOUR BLOG URL HERE]
+👉 (https://medium.com/@samueltomisin31/how-i-built-a-real-time-ddos-detection-engine-from-scratch-and-what-i-learned-doing-it-dfe532572f2e)
 
 ---
 
