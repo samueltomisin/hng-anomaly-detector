@@ -276,13 +276,6 @@ Make sure `.env` is in your `.gitignore` so it is never committed:
 echo ".env" >> .gitignore
 ```
 
-Your `docker-compose.yml` already references the variable like this:
-Find this line and paste your webhook URL:
-
-```
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-```
-
 ### Step 6: Point a Domain at Your Server
 
 For the dashboard to be accessible at a domain (required for submission), point a subdomain or DuckDNS domain at your server IP. DuckDNS is free:
