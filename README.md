@@ -93,6 +93,21 @@ hng-anomaly-detector/
 ```
 ---
 
+## 🐍 Language Choice — Why Python?
+
+Python was chosen for three practical reasons:
+
+**1. Built-in tools for everything we needed**
+Python's standard library includes `threading` (for running the dashboard and unban timers concurrently), `http.server` (for serving the dashboard without a framework), `subprocess` (for running iptables commands), and `collections.deque` (for the sliding window). No heavy dependencies needed.
+
+**2. Readable systems code**
+A daemon that other engineers need to read and maintain should be easy to follow. Python's syntax is close to plain English  `window.popleft()` tells you exactly what it does. This matters in a security tool where clarity reduces the chance of bugs.
+
+**3. Fast to iterate and debug**
+The detector went through several debugging cycles (buffering issues, missing methods, path errors). Python's error messages are specific and point directly to the problem. This made fixing issues faster — critical when working under a 48-hour deadline.
+
+---
+
 ## ⚙️ How the Sliding Window Works
 Think of the sliding window like a rolling conveyor belt, it only ever holds the **last 60 seconds** of requests, and old ones fall off the back automatically.
 
@@ -189,7 +204,124 @@ A Slack notification is sent every time an IP is unbanned.
 
 ---
 
-Every ban, unban, and baseline recalculation is recorded in this format:
+## 🚀 Setup Instructions (Fresh VPS)
+
+Follow these steps exactly to go from a blank server to a fully running stack.
+
+### Step 1: Provision Your Server
+
+You need a Linux VPS with:
+- Minimum 2 vCPU, 2 GB RAM
+- Ubuntu 22.04 LTS
+- Ports 22, 80, 443, and 8080 open in your firewall or security group
+
+### Step 2 — Connect to Your Server
+
+```bash
+chmod 400 ~/Downloads/your-key.pem
+ssh -i ~/Downloads/your-key.pem ubuntu@YOUR_SERVER_IP
+```
+
+### Step 3: Install Dependencies
+
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Install Docker Compose
+sudo apt install docker-compose-plugin -y
+
+# Install supporting tools
+sudo apt install python3 python3-pip iptables -y
+
+# Create audit log directory
+sudo mkdir -p /var/log/detector
+sudo chmod 777 /var/log/detector
+```
+
+### Step 4: Clone the Repository
+
+```bash
+git clone https://github.com/samueltomisin/hng-anomaly-detector.git
+cd hng-anomaly-detector
+```
+
+### Step 5: Set Your Slack Webhook
+
+Go to https://api.slack.com/apps, create an app, enable Incoming Webhooks, and copy your webhook URL. Then:
+
+```bash
+# Open docker-compose.yml and replace the SLACK_WEBHOOK_URL value
+nano docker-compose.yml
+```
+
+Find this line and paste your webhook URL:
+```
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+### Step 6: Point a Domain at Your Server
+
+For the dashboard to be accessible at a domain (required for submission), point a subdomain or DuckDNS domain at your server IP. DuckDNS is free:
+
+1. Go to https://www.duckdns.org
+2. Create a subdomain
+3. Set the IP to your server's public IP
+4. Your dashboard will be at `http://your-subdomain.duckdns.org:8080`
+
+### Step 7: Launch the Full Stack
+
+```bash
+docker compose up -d --build
+```
+
+This builds and starts three containers: Nginx, Nextcloud, and the Detector daemon.
+
+### Step 8: Verify Everything is Running
+
+```bash
+# All three containers should show 'Up'
+docker compose ps
+
+# Dashboard should be listening
+sudo ss -tlnp | grep 8080
+
+# Nginx should be responding
+curl http://localhost/
+
+# Detector should be watching logs
+docker compose logs detector --tail=20
+```
+
+### Step 9: Test Detection
+
+```bash
+# Install Apache Bench
+sudo apt install apache2-utils -y
+
+# Simulate a DDoS attack
+ab -n 2000 -c 100 http://localhost/
+```
+
+Within 10 seconds you should see a ban alert in Slack, the IP appear on your dashboard, and a DROP rule in iptables:
+
+```bash
+sudo iptables -L INPUT -n
+```
+
+---
+
+## 📋 Audit Log
+
+Every ban, unban, and baseline recalculation is recorded automatically.
+
+To view it:
+```bash
+docker exec hng-detector-detector-1 cat /var/log/detector/audit.log
+```
+
 ```
 [2026-04-28T10:00:00Z] BAN 1.2.3.4 | z-score=5.23 | rate=8.3200 | baseline=1.0000 | duration=600
 [2026-04-28T10:10:00Z] UNBAN 1.2.3.4 | offense #1 | released
