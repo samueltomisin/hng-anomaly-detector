@@ -107,7 +107,7 @@ A daemon that other engineers need to read and maintain should be easy to follow
 
 **3. Fast to iterate and debug**
 
-The detector went through several debugging cycles (buffering issues, missing methods, path errors). Python's error messages are specific and point directly to the problem. This made fixing issues faster — critical when working under a 48-hour deadline.
+The detector went through several debugging cycles (buffering issues, missing methods, path errors). Python's error messages are specific and point directly to the problem. This made fixing issues faster. 
 
 ---
 
