@@ -139,7 +139,7 @@ The baseline is how the system knows what "normal" looks like. Without it, we'd 
 Here's how it works:
 
 1. Every second, we record how many requests arrived that secondunts
-2. We keep a **rolling 30-minute window** of these per-second counts*standard deviation** (how much traffic usually varies)
+2. We keep a **rolling 30-minute window** of these per-second counts **standard deviation** (how much traffic usually varies)
 3. Every **60 seconds**, we recalculate the **mean** (average) and **standard deviation** (how much traffic usually varies) is near zero
 4. We set a **floor** of `1.0` for mean and `0.5` for stddev this prevents false alarms during quiet periods when traffic is near zero
 The result is a baseline that **adapts to your actual traffic** busy hours get a higher baseline, quiet hours get a lower one. It's never hardcoded.
