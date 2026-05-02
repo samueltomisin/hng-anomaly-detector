@@ -93,17 +93,20 @@ hng-anomaly-detector/
 ```
 ---
 
-## 🐍 Language Choice — Why Python?
+## 🐍 Language Choice: Why Python?
 
 Python was chosen for three practical reasons:
 
 **1. Built-in tools for everything we needed**
+
 Python's standard library includes `threading` (for running the dashboard and unban timers concurrently), `http.server` (for serving the dashboard without a framework), `subprocess` (for running iptables commands), and `collections.deque` (for the sliding window). No heavy dependencies needed.
 
 **2. Readable systems code**
+
 A daemon that other engineers need to read and maintain should be easy to follow. Python's syntax is close to plain English  `window.popleft()` tells you exactly what it does. This matters in a security tool where clarity reduces the chance of bugs.
 
 **3. Fast to iterate and debug**
+
 The detector went through several debugging cycles (buffering issues, missing methods, path errors). Python's error messages are specific and point directly to the problem. This made fixing issues faster — critical when working under a 48-hour deadline.
 
 ---
@@ -215,7 +218,7 @@ You need a Linux VPS with:
 - Ubuntu 22.04 LTS
 - Ports 22, 80, 443, and 8080 open in your firewall or security group
 
-### Step 2 — Connect to Your Server
+### Step 2: Connect to Your Server
 
 ```bash
 chmod 400 ~/Downloads/your-key.pem
@@ -254,10 +257,28 @@ Go to https://api.slack.com/apps, create an app, enable Incoming Webhooks, and c
 
 ```bash
 # Open docker-compose.yml and replace the SLACK_WEBHOOK_URL value
-nano docker-compose.yml
+vim docker-compose.yml
 ```
 
+However, never hardcode your webhook URL directly in docker-compose.yml. GitHub will detect it and block your push. Use a `.env` file instead.
+
+Create a `.env` file in the project root:
+
+```bash
+cat > .env << 'EOF'
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+EOF
+```
+
+Make sure `.env` is in your `.gitignore` so it is never committed:
+
+```bash
+echo ".env" >> .gitignore
+```
+
+Your `docker-compose.yml` already references the variable like this:
 Find this line and paste your webhook URL:
+
 ```
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 ```
