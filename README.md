@@ -9,7 +9,7 @@ A real-time DDoS detection and auto-blocking daemon built for HNG's cloud.ng Nex
 | What | Where |
 |---|---|
 | 📊 Live Metrics Dashboard | http://anormallydashboard.duckdns.org:8080 |
-| ☁️ Nextcloud (IP access only) | http://http://34.228.27.80/ |
+| ☁️ Nextcloud (IP access only) | http://34.228.27.80 |
 | 💻 GitHub Repository | https://github.com/samueltomisin/hng-anomaly-detector |
 
 ---
